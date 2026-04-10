@@ -8,10 +8,10 @@ runs:
       run: |
         cd $HOME_PATH
         if [[ -n "${{ env.TARGET_PROFILE_IMG }}" ]]; then
-           echo "SHANGCHUAN_MINGCHEN=${{ env.SOURCE }}-${{ env.LUCI_EDITION }}" >> ${GITHUB_ENV}
+           echo "SHANGCHUAN_MINGCHEN=${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE_IMG }}" >> ${GITHUB_ENV}
            echo "RR_RELEASE=b" >> ${GITHUB_ENV}
         else
-           echo "SHANGCHUAN_MINGCHEN=${{ env.SOURCE }}-${{ env.LUCI_EDITION }}" >> ${GITHUB_ENV}
+           echo "SHANGCHUAN_MINGCHEN=${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}" >> ${GITHUB_ENV}
            echo "RR_RELEASE=a" >> ${GITHUB_ENV}
         fi
         [[ -z "${DATE}" ]] && echo "DATE=$(date "+%Y%m%d%H%M%S")" >> ${GITHUB_ENV}
@@ -38,16 +38,26 @@ runs:
       if: env.UPLOAD_RELEASE == 'true'
       shell: bash
       run: |
-        # 1. 提取内核版本 (优化路径并增加容错)
-        # 直接从已定义的 FIRMWARE_PATH 中读取 manifest 文件
-        KERNEL_VER=$(cat ${{ env.FIRMWARE_PATH }}/*.manifest 2>/dev/null | grep ^kernel | cut -d- -f2 | tr -d ' ' || echo "未知")
+        # --- 1. 提取内核版本 (增加多重容错逻辑) ---
+        # 优先级 1: 检查是否已有 LINUX_KERNEL 变量
+        # 优先级 2: 检查是否已有 patchverl 变量
+        # 优先级 3: 尝试从 .manifest 文件中抓取
+        if [ -n "${{ env.LINUX_KERNEL }}" ]; then
+           KERNEL_VER="${{ env.LINUX_KERNEL }}"
+        elif [ -n "${{ env.patchverl }}" ]; then
+           KERNEL_VER="${{ env.patchverl }}"
+        else
+           # 如果环境变量都没有，再尝试读取文件
+           KERNEL_VER=$(cat ${{ env.FIRMWARE_PATH }}/*.manifest 2>/dev/null | grep ^kernel | cut -d- -f2 | tr -d ' ' || echo "未知")
+        fi
+        
         echo "KERNEL=$KERNEL_VER" >> ${GITHUB_ENV}
         
-        # 2. 提取后台 IP 地址
+        # --- 2. 提取后台 IP 地址 ---
         LAN_IP=$(grep "ipaddr:-" ${HOME_PATH}/package/base-files/files/bin/config_generate | grep -v 'addr_offset' | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | head -n1)
         [[ -z "$LAN_IP" ]] && LAN_IP="192.168.1.1"
         
-        # 3. 写入动态说明文件 (使用工作区绝对路径以防丢失)
+        # --- 3. 写入动态说明文件 ---
         cat <<EOF > ${{ github.workspace }}/release.txt
         ### 📒 固件信息
         - ♨️【${{ env.SOURCE }}】固件编译完成
