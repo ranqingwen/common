@@ -1415,16 +1415,16 @@ ls -1
 
 # --- 核心修改：仅保留固件重命名逻辑 (点号方案：月.日.时.分) ---
 if ! echo "$TARGET_BOARD" | grep -Eq 'armvirt|armsr'; then
-  # 定义精确到分钟的时间变量 (格式：04.09.22.38)
+  # 定义精确到分钟的时间变量 (格式：2026-0409-2238)
   # 使用 TZ=UTC-8 确保获取北京时间
-  local GUJIAN_TIME=$(TZ=UTC-8 date "+%m.%d.%H.%M")
+  local GUJIAN_TIME=$(TZ=UTC-8 date "+%y-%m%d-%H%M")
 
   # 1. 处理 UEFI 固件
-  # 命名示例：Lede-24.10-6.12.80-x86-64-04.09.22.38-uefi
+  # 命名示例：Lede-24.10-6.12.80-x86-64-2026-0409-2238-uefi
   rename "s/openwrt-x86-64-generic-squashfs-combined-efi/${SOURCE}-${LUCI_EDITION}-${LINUX_KERNEL}-${TARGET_PROFILE}-${GUJIAN_TIME}-uefi/" *
   
   # 2. 处理 BIOS 固件
-  # 命名示例：Lede-24.10-6.12.80-x86-64-04.09.22.38-bios.img.gz
+  # 命名示例：Lede-24.10-6.12.80-x86-64-2026-0409-2238-bios.img.gz
   rename "s/openwrt-x86-64-generic-squashfs-combined.img.gz/${SOURCE}-${LUCI_EDITION}-${LINUX_KERNEL}-${TARGET_PROFILE}-${GUJIAN_TIME}-bios.img.gz/" *
   
   TIME g "固件名称重命名完成 (点号连接格式)"
