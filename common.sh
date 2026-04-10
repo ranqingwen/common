@@ -685,7 +685,7 @@ if [[ "${Clash_Core}" == "1" ]]; then
     # 创建存放目录
     mkdir -p "${HOME_PATH}/files/etc/openclash/core"
 
-    # 定义下载地址
+    # 定义下载地址（引用自 preset-clash-core.sh）
     CLASH_META_URL="https://raw.githubusercontent.com/vernesong/OpenClash/core/master/meta/clash-linux-${Clash_Arch}.tar.gz"
     GEOIP_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
     GEOSITE_URL="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
@@ -698,7 +698,6 @@ if [[ "${Clash_Core}" == "1" ]]; then
 
     # 赋予 755 权限
     chmod 755 "${HOME_PATH}/files/etc/openclash/core/clash_meta"
-    
     echo "Clash 内核(${Clash_Arch})及 GeoIP/GeoSite 下载完成"
 else
     echo "跳过 Clash 内核下载"
