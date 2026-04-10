@@ -16,7 +16,7 @@ runs:
         fi
         [[ -z "${DATE}" ]] && echo "DATE=$(date "+%Y%m%d%H%M%S")" >> ${GITHUB_ENV}
         [[ -z "${TONGZHI_DATE}" ]] && echo "TONGZHI_DATE=$(date +%Y年%m月%d日)" >> ${GITHUB_ENV}
-        [[ -z "${FIRMWARE_DATE}" ]] && echo "FIRMWARE_DATE=$(date +%Y-%m%d-%H%M)" >> ${GITHUB_ENV}
+        [[ -z "${FIRMWARE_DATE}" ]] && echo "FIRMWARE_DATE=$(date +%Y-%m%d)" >> ${GITHUB_ENV}
         echo "TZ_Message=$(date +%Y年%m月%d号%H时%M分)" >> ${GITHUB_ENV}
   
     - name: 上传固件在 github Artifacts
@@ -78,7 +78,7 @@ runs:
       if: env.UPLOAD_RELEASE == 'true' && env.RR_RELEASE == 'a'
       uses: ncipollo/release-action@v1
       with:
-        # 标题格式: Lede-2026-0410-1530
+        # 标题格式: Lede-2026-0410
         name: ${{ env.SOURCE }}-${{ env.FIRMWARE_DATE }}
         tag: ${{ env.FIRMWARE_DATE }}
         token: ${{ env.REPO_TOKEN }}
