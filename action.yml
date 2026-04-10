@@ -31,14 +31,16 @@ runs:
       shell: bash
       run: |
         cd ${GITHUB_WORKSPACE}
-        sleep 2
+        sleep 20  # 【修改1】将 2 改为 20，给 GitHub API 足够的刷新时间
         echo "YUNDUAN_API=false" >> $GITHUB_ENV
         mkdir -p $GITHUB_WORKSPACE/API
         cd $GITHUB_WORKSPACE/API
         if ! curl -s -H "Authorization: Bearer ${{ env.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.UPDATE_TAG }}" -o zzz_api; then
             wget -O zzz_api https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.UPDATE_TAG }}
         fi
-        if grep -q "${{ env.FIRMWARE_VERSION }}" zzz_api; then
+        
+        # 【修改2】将 FIRMWARE_VERSION 改为 TARGET_PROFILE 放宽匹配条件，只要包含架构名即可
+        if grep -q "${{ env.TARGET_PROFILE }}" zzz_api; then
            echo "AUTO_API=$GITHUB_WORKSPACE/API/zzz_api" >> $GITHUB_ENV
            echo "YUNDUAN_API=true" >> $GITHUB_ENV
         else
@@ -50,7 +52,7 @@ runs:
       if: ${{ env.YUNDUAN_API == 'true' }}
       uses: ncipollo/release-action@v1
       with:
-        name: Update-${{ env.TARGET_BOARD }}
+        name: AutoUpdate-${{ env.TARGET_BOARD }}
         tag: ${{ env.UPDATE_TAG }}
         token: ${{ env.REPO_TOKEN }}
         artifacts: ${{ env.AUTO_API }}
