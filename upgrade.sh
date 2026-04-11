@@ -91,7 +91,7 @@ function Diy_Part2() {
 	;;
 	esac
 	
-	export FIRMWARE_VERSION="${SOURCE}-${TARGET_PROFILE_ER}-${UPGRADE_DATE}"
+	export FIRMWARE_VERSION="${SOURCE}-${LUCI_EDITION}-${TARGET_PROFILE_ER}-${UPGRADE_DATE}"
 
 	if [[ "${TARGET_BOARD}" == "x86" ]]; then
    		BOOT_TYPE="legacy"
