@@ -1417,7 +1417,7 @@ ls -1
 if ! echo "$TARGET_BOARD" | grep -Eq 'armvirt|armsr'; then
   # 定义精确到分钟的时间变量 (格式：2026-0409-2238)
   # 使用 TZ=UTC-8 确保获取北京时间
-  local GUJIAN_TIME=$(TZ=UTC-8 date "+%y-%m%d-%H%M")
+  local GUJIAN_TIME=$(TZ=UTC-8 date "+%Y-%m%d-%H%M")
 
   # 1. 处理 UEFI 固件
   # 命名示例：Lede-24.10-6.12.80-x86-64-2026-0409-2238-uefi
@@ -1431,10 +1431,10 @@ if ! echo "$TARGET_BOARD" | grep -Eq 'armvirt|armsr'; then
   ls -1
 fi
 
-# 记录环境变量供后续上传步骤使用
+# 记录环境变量供后续上传步骤使用，uploads action.yml需要使用到
 echo "DATE=$(date "+%Y%m%d%H%M%S")" >> ${GITHUB_ENV}
 echo "TONGZHI_DATE=$(date +%Y年%m月%d日)" >> ${GITHUB_ENV}
-echo "FIRMWARE_DATE=$(date +%Y-%m%d-%H%M)" >> ${GITHUB_ENV}
+echo "FIRMWARE_DATE=$(date +%Y-%m%d)" >> ${GITHUB_ENV}
 }
 
 function gitsvn() {
