@@ -774,7 +774,7 @@ if [[ "${Fix_Oafd_Log}" == "1" ]]; then
 else
   echo "跳过 oafd 日志修复"
 fi
-}
+
 
 if [[ "${Disable_autosamba}" == "1" ]]; then
 sed -i '/samba/d;/SAMBA/d' "${HOME_PATH}/.config"
