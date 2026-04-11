@@ -19,7 +19,7 @@ runs:
       if: ${{ env.UPDATE_FIRMWARE_ONLINE == 'true' }}
       uses: ncipollo/release-action@v1
       with:
-        name: AutoUpdate
+        name: ${{ env.UPDATE_TAG }}
         tag: ${{ env.UPDATE_TAG }}
         token: ${{ env.REPO_TOKEN }}
         allowUpdates: true
@@ -31,26 +31,33 @@ runs:
       shell: bash
       run: |
         cd ${GITHUB_WORKSPACE}
-        sleep 2
         echo "YUNDUAN_API=false" >> $GITHUB_ENV
         mkdir -p $GITHUB_WORKSPACE/API
         cd $GITHUB_WORKSPACE/API
-        if ! curl -s -H "Authorization: Bearer ${{ env.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.UPDATE_TAG }}" -o zzz_api; then
-            wget -O zzz_api https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.UPDATE_TAG }}
-        fi
-        if grep -q "${{ env.FIRMWARE_VERSION }}" zzz_api; then
-           echo "AUTO_API=$GITHUB_WORKSPACE/API/zzz_api" >> $GITHUB_ENV
-           echo "YUNDUAN_API=true" >> $GITHUB_ENV
-        else
-           echo "获取api失败,在线更新将不能获取到最新版本信息"
-        fi
-        sleep 2
+        
+        # 增加重试机制，确保抓取到的是刚刚发布的那个 Tag 的最新 JSON
+        for i in {1..5}; do
+          curl -s -H "Authorization: Bearer ${{ env.REPO_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.UPDATE_TAG }}" \
+          -o zzz_api
+          
+          # 检查抓到的 JSON 里是否包含本次编译的版本号
+          if grep -q "${{ env.FIRMWARE_VERSION }}" zzz_api; then
+             echo "成功抓取到匹配的 API 信息"
+             echo "YUNDUAN_API=true" >> $GITHUB_ENV
+             echo "AUTO_API=$GITHUB_WORKSPACE/API/zzz_api" >> $GITHUB_ENV
+             break
+          fi
+          echo "API 数据尚未更新，等待 5 秒后重试..."
+          sleep 5
+        done
 
     - name: 发送[在线更新固件]至云端2
       if: ${{ env.YUNDUAN_API == 'true' }}
       uses: ncipollo/release-action@v1
       with:
-        name: AutoUpdate-${{ env.TARGET_BOARD }}
+        # 【最重要】：这里必须改回 AutoUpdate，保持名称和 Tag 严格统一
+        name: ${{ env.UPDATE_TAG }}
         tag: ${{ env.UPDATE_TAG }}
         token: ${{ env.REPO_TOKEN }}
         artifacts: ${{ env.AUTO_API }}
