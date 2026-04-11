@@ -379,31 +379,16 @@ if [[ "${REPO_BRANCH}" =~ (main|master) ]]; then
 fi
 }
 
-
 function Diy_MT798X() {
 cd ${HOME_PATH}
 }
 
-
 function Diy_partsh() {
-    TIME y "正在执行：自定义文件"
-    cd ${HOME_PATH}
-    
-    # 运行自定义文件 (这里会执行 diy-part.sh)
-    ${DIY_PT1_SH}
-
-    # --- 新增修复代码开始 ---
-    if [ "$Fix_Oafd_Log" = "1" ]; then
-        TIME g "正在修复 oafd 日志刷屏问题..."
-        # 在固件源码的 /etc/rc.local 的 exit 0 之前插入创建文件的命令
-        if [ -f "package/base-files/files/etc/rc.local" ]; then
-            sed -i '/exit 0/i touch /tmp/feature.cfg' package/base-files/files/etc/rc.local
-            TIME g "修复补丁已写入 rc.local"
-        fi
-    fi
-    # --- 新增修复代码结束 ---
-
-    ./scripts/feeds update -a &>/dev/null
+TIME y "正在执行：自定义文件"
+cd ${HOME_PATH}
+# 运行自定义文件
+${DIY_PT1_SH}
+./scripts/feeds update -a &>/dev/null
 }
 
 
@@ -754,6 +739,42 @@ else
   echo "去除 luci-app-advanced 完成"
 fi
 
+# OAF 应用过滤增强管理
+if [[ "${Update_OAF}" == "1" ]]; then
+  TIME y "正在执行：替换 OpenAppFilter 源码..."
+  # 彻底清理旧版插件路径
+  rm -rf package/lean/luci-app-oaf
+  rm -rf package/lean/oafd
+  rm -rf package/OpenAppFilter
+  # 拉取 destan19 原版代码
+  git clone --depth 1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
+  # 写入编译开关到 .config
+  echo -e "\nCONFIG_PACKAGE_luci-app-oaf=y" >> ${HOME_PATH}/.config
+  echo -e "CONFIG_PACKAGE_kmod-oaf=y" >> ${HOME_PATH}/.config
+  echo -e "CONFIG_PACKAGE_appfilter=y" >> ${HOME_PATH}/.config
+  echo "增加 OpenAppFilter (destan19) 完成"
+else
+  echo -e "\n# CONFIG_PACKAGE_luci-app-oaf is not set" >> ${HOME_PATH}/.config
+  echo "跳过 OpenAppFilter 源码替换"
+fi
+
+# 修复 oafd 日志刷屏补丁
+if [[ "${Fix_Oafd_Log}" == "1" ]]; then
+  TIME y "正在执行：注入 oafd 日志修复补丁..."
+  local rc_file="${HOME_PATH}/package/base-files/files/etc/rc.local"
+  if [ -f "$rc_file" ]; then
+    # 检查是否已经注入过，避免重复
+    if ! grep -q "touch /tmp/feature.cfg" "$rc_file"; then
+      sed -i '/exit 0/i touch /tmp/feature.cfg' "$rc_file"
+      echo "oafd 日志补丁已成功写入 rc.local"
+    else
+      echo "oafd 日志补丁已存在，跳过"
+    fi
+  fi
+else
+  echo "跳过 oafd 日志修复"
+fi
+}
 
 if [[ "${Disable_autosamba}" == "1" ]]; then
 sed -i '/samba/d;/SAMBA/d' "${HOME_PATH}/.config"
