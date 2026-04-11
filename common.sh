@@ -386,11 +386,24 @@ cd ${HOME_PATH}
 
 
 function Diy_partsh() {
-TIME y "正在执行：自定义文件"
-cd ${HOME_PATH}
-# 运行自定义文件
-${DIY_PT1_SH}
-./scripts/feeds update -a &>/dev/null
+    TIME y "正在执行：自定义文件"
+    cd ${HOME_PATH}
+    
+    # 运行自定义文件 (这里会执行 diy-part.sh)
+    ${DIY_PT1_SH}
+
+    # --- 新增修复代码开始 ---
+    if [ "$Fix_Oafd_Log" = "1" ]; then
+        TIME g "正在修复 oafd 日志刷屏问题..."
+        # 在固件源码的 /etc/rc.local 的 exit 0 之前插入创建文件的命令
+        if [ -f "package/base-files/files/etc/rc.local" ]; then
+            sed -i '/exit 0/i touch /tmp/feature.cfg' package/base-files/files/etc/rc.local
+            TIME g "修复补丁已写入 rc.local"
+        fi
+    fi
+    # --- 新增修复代码结束 ---
+
+    ./scripts/feeds update -a &>/dev/null
 }
 
 
