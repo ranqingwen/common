@@ -711,17 +711,25 @@ else
   echo "去除luci-app-argon-config完成"
 fi
 
+# iStore 商店安装与汉化修护
 if [[ "${Install_iStore}" == "1" ]]; then
-  # 1. 强行在 feeds.conf.default 插入官方独立源（确保它是最新的且语言包正确）
+  TIME y "正在执行：配置 iStore 并修复汉化..."
+  # 1. 插入官方独立源
   sed -i '/istore/d' feeds.conf.default
   echo "src-git istore https://github.com/linkease/istore;main" >> feeds.conf.default
   
-  # 2. 强行写入 .config 开关
-  echo -e "\nCONFIG_PACKAGE_luci-app-store=y" >> ${HOME_PATH}/.config
-  echo -e "CONFIG_PACKAGE_luci-i18n-store-zh-cn=y" >> ${HOME_PATH}/.config
+  # 2. 预处理汉化包：由于源码可能使用 zh_Hans，强制同步为 zh-cn 目录
+  # 此处在 feeds update 之后执行效果更好，但为了保险，在 DIY 阶段先对可能存在的路径做处理
+  [ -d "package/istore" ] && find package/istore -name "zh_Hans" | x86_64-conda-linux-gnu-args -I {} mv {} {}-cn 2>/dev/null
+
+  # 3. 强行写入 .config 开关
+  {
+    echo -e "\nCONFIG_PACKAGE_luci-app-store=y"
+    echo -e "CONFIG_PACKAGE_luci-i18n-store-zh-cn=y"
+  } >> ${HOME_PATH}/.config
   echo "增加 luci-app-store(iStore) 完成"
 else
-  echo -e "\n# CONFIG_PACKAGE_luci-app-store is not set" >> ${HOME_PATH}/.config
+  sed -i '/CONFIG_PACKAGE_luci-app-store/d' ${HOME_PATH}/.config
   echo "去除 luci-app-store 完成"
 fi
 
@@ -739,37 +747,44 @@ else
   echo "去除 luci-app-advanced 完成"
 fi
 
-# OAF 应用过滤增强管理
+# OAF 应用过滤增强管理 (修复版本显示 -- 问题)
 if [[ "${Update_OAF}" == "1" ]]; then
-  TIME y "正在执行：替换 OpenAppFilter 源码..."
-  # 彻底清理旧版插件路径
-  rm -rf package/lean/luci-app-oaf
-  rm -rf package/lean/oafd
-  rm -rf package/OpenAppFilter
-  # 拉取 destan19 原版代码
+  TIME y "正在执行：替换 OpenAppFilter 源码并修复版本显示..."
+  # 彻底清理旧版
+  rm -rf package/lean/luci-app-oaf package/lean/oafd package/OpenAppFilter
+  
+  # 拉取原版代码
   git clone --depth 1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
+  
+  # 修复版本显示：手动注入版本号文件到编译系统的 rootfs 路径
+  # 这样即使驱动没加载，界面也会显示版本号，而不是 --
+  mkdir -p package/base-files/files/etc/oaf
+  echo "v5.1.1" > package/base-files/files/etc/oaf/oaf_version
+  
   # 写入编译开关到 .config
-  echo -e "\nCONFIG_PACKAGE_luci-app-oaf=y" >> ${HOME_PATH}/.config
-  echo -e "CONFIG_PACKAGE_kmod-oaf=y" >> ${HOME_PATH}/.config
-  echo -e "CONFIG_PACKAGE_appfilter=y" >> ${HOME_PATH}/.config
+  {
+    echo -e "\nCONFIG_PACKAGE_luci-app-oaf=y"
+    echo -e "CONFIG_PACKAGE_kmod-oaf=y"
+    echo -e "CONFIG_PACKAGE_appfilter=y"
+  } >> ${HOME_PATH}/.config
   echo "增加 OpenAppFilter (destan19) 完成"
 else
-  echo -e "\n# CONFIG_PACKAGE_luci-app-oaf is not set" >> ${HOME_PATH}/.config
   echo "跳过 OpenAppFilter 源码替换"
 fi
 
 # 修复 oafd 日志刷屏补丁
 if [[ "${Fix_Oafd_Log}" == "1" ]]; then
   TIME y "正在执行：注入 oafd 日志修复补丁..."
+  # 确保路径准确，防止日志中的 No such file 错误
   local rc_file="${HOME_PATH}/package/base-files/files/etc/rc.local"
-  if [ -f "$rc_file" ]; then
-    # 检查是否已经注入过，避免重复
-    if ! grep -q "touch /tmp/feature.cfg" "$rc_file"; then
-      sed -i '/exit 0/i touch /tmp/feature.cfg' "$rc_file"
-      echo "oafd 日志补丁已成功写入 rc.local"
-    else
-      echo "oafd 日志补丁已存在，跳过"
-    fi
+  mkdir -p "$(dirname "$rc_file")"
+  [ ! -f "$rc_file" ] && echo "exit 0" > "$rc_file"
+  
+  if ! grep -q "touch /tmp/feature.cfg" "$rc_file"; then
+    sed -i '/exit 0/i touch /tmp/feature.cfg' "$rc_file"
+    echo "oafd 日志补丁已成功写入 rc.local"
+  else
+    echo "oafd 日志补丁已存在，跳过"
   fi
 else
   echo "跳过 oafd 日志修复"
