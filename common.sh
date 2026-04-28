@@ -747,50 +747,6 @@ else
   echo "去除 luci-app-advanced 完成"
 fi
 
-# OAF 应用过滤增强管理 (修复版本显示 -- 问题)
-if [[ "${Update_OAF}" == "1" ]]; then
-  TIME y "正在执行：替换 OpenAppFilter 源码并修复版本显示..."
-  # 彻底清理旧版
-  rm -rf package/lean/luci-app-oaf package/lean/oafd package/OpenAppFilter
-  
-  # 拉取原版代码
-  git clone --depth 1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
-  
-  # 修复版本显示：手动注入版本号文件到编译系统的 rootfs 路径
-  # 这样即使驱动没加载，界面也会显示版本号，而不是 --
-  mkdir -p package/base-files/files/etc/oaf
-  echo "v5.1.1" > package/base-files/files/etc/oaf/oaf_version
-  
-  # 写入编译开关到 .config
-  {
-    echo -e "\nCONFIG_PACKAGE_luci-app-oaf=y"
-    echo -e "CONFIG_PACKAGE_kmod-oaf=y"
-    echo -e "CONFIG_PACKAGE_appfilter=y"
-  } >> ${HOME_PATH}/.config
-  echo "增加 OpenAppFilter (destan19) 完成"
-else
-  echo "跳过 OpenAppFilter 源码替换"
-fi
-
-# 修复 oafd 日志刷屏补丁
-if [[ "${Fix_Oafd_Log}" == "1" ]]; then
-  TIME y "正在执行：注入 oafd 日志修复补丁..."
-  # 确保路径准确，防止日志中的 No such file 错误
-  local rc_file="${HOME_PATH}/package/base-files/files/etc/rc.local"
-  mkdir -p "$(dirname "$rc_file")"
-  [ ! -f "$rc_file" ] && echo "exit 0" > "$rc_file"
-  
-  if ! grep -q "touch /tmp/feature.cfg" "$rc_file"; then
-    sed -i '/exit 0/i touch /tmp/feature.cfg' "$rc_file"
-    echo "oafd 日志补丁已成功写入 rc.local"
-  else
-    echo "oafd 日志补丁已存在，跳过"
-  fi
-else
-  echo "跳过 oafd 日志修复"
-fi
-
-
 if [[ "${Disable_autosamba}" == "1" ]]; then
 sed -i '/samba/d;/SAMBA/d' "${HOME_PATH}/.config"
 echo '
